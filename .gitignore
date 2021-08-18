@@ -1,0 +1,8 @@
+.venv
+
+# Development folders
+node_modules/
+.nyc_output/
+
+# Package folders
+dist/

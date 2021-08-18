@@ -1,0 +1,6 @@
+# Build-related assets
+dist/
+
+# Non-code items
+node_modules/
+package.json
