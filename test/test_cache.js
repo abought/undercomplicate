@@ -41,4 +41,13 @@ describe('LRC cache', function () {
         cache.get('nothing');
         assert.equal(cache._head.key, 'b', 'Uncached values will not affect the LRU order');
     });
+
+    it('stores metadata along with cache entries', function () {
+        const cache = new LRUCache(3);
+
+        const meta = {chr: '1', start: 1, end: 100};
+        cache.add('something', 12, meta);
+
+        assert.deepEqual(cache._head.metadata, meta);
+    });
 });

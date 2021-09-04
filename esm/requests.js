@@ -53,7 +53,12 @@ function getLinkedData(shared_options, entities, dependencies, consolidate = tru
         const prereq_promises = Promise.all(depends_on.map((name) => responses.get(name)));
 
         const this_result = prereq_promises.then((prior_results) => {
-            return provider.getData(shared_options, ...prior_results);
+            // Each request will be told the name of the provider that requested it. This can be used during post-processing,
+            //   eg to use the same endpoint adapter twice and label where the fields came from (assoc.id, assoc2.id)
+            // This has a secondary effect: it ensures that any changes made to "shared" options in one adapter will
+            //  not leak out to others via a mutable shared object reference.
+            const options = Object.assign({_provider_name: name}, shared_options);
+            return provider.getData(options, ...prior_results);
         });
         responses.set(name, this_result);
     }

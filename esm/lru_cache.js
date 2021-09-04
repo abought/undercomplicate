@@ -1,9 +1,10 @@
 // Implement an LRU Cache
 
 class LLNode {
-    constructor(key, value, prev = null, next = null) {
+    constructor(key, value, metadata = {}, prev = null, next = null) {
         this.key = key;
         this.value = value;
+        this.metadata = metadata;
         this.prev = prev;
         this.next = next;
     }
@@ -43,7 +44,7 @@ class LRUCache {
         return cached.value;
     }
 
-    add(key, value) {
+    add(key, value, metadata) {
         // Add an item. Forcibly replaces the existing cached value for the same key.
         if (this._max_size === 0) {
             // Don't cache items if cache has 0 size. Also prevent users from trying "negative number for infinite cache".
@@ -55,7 +56,7 @@ class LRUCache {
             this._remove(prior);
         }
 
-        const node = new LLNode(key, value, null, this._head);
+        const node = new LLNode(key, value, metadata, null, this._head);
 
         if (this._head) {
             this._head.prev = node;

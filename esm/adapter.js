@@ -76,6 +76,18 @@ class BaseAdapter {
         return records;
     }
 
+    /**
+     * A hook to transform the response after all operations are done. For example, this can be used to prefix fields
+     *  with a namespace unique to the request, like assoc.log_pvalue. (that way, annotations and validation can happen
+     *  on the actual API payload, without having to guess what the fields were renamed to).
+     * @param records
+     * @param options
+     * @private
+     */
+    _postProcessResponse(records, options) {
+        return records;
+    }
+
     _validateResponseFields(records) {
         if (!records.length) {
             // A query can return 0 records without violating the fields contract
@@ -118,18 +130,21 @@ class BaseAdapter {
         if (this._enable_cache && this._cache.has(cache_key)) {
             result = this._cache.get(cache_key);
         } else {
-            // Cache the promise (to avoid race conditions in conditional fetch)
+            // Cache the promise (to avoid race conditions in conditional fetch). If the function `_getCacheKey`
+            //  sets a special option value called _cache_meta, this will be used to annotate the cache entry
+            // For example, this can be used to decide whether zooming into a view could be satisfied by a cache entry,
+            //  even if the actual cache key wasn't an exact match
             result = this._performRequest(options);
-            this._cache.add(cache_key, result);
+            this._cache.add(cache_key, result, options._cache_meta);
         }
-        // TODO: Extend the LRU cache to support LZ style "this region is a subset" behavior
-        //  (this feature requires tracking metadata with cache entries, like cache chr/start/end when making region requests)
+
         return result.then((text) => this._normalizeResponse(text, options))
-            .then((records) => this._annotateRecords(records, options)).then((records) => {
+            .then((records) => this._annotateRecords(records, options))
+            .then((records) => {
                 if (this._validate_fields) {
                     this._validateResponseFields(records);
                 }
-                return records;
+                return this._postProcessResponse(records);
             });
     }
 }
@@ -142,11 +157,11 @@ class BaseUrlAdapter extends BaseAdapter {
     constructor(config) {
         super(config);
 
-        const { base_url } = config;
-        if (!base_url) {
-            throw new Error('Web based resources must specify a resource URL');
+        const { url } = config;
+        if (!url) {
+            throw new Error('Web based resources must specify a resource URL as option "url"');
         }
-        this._base_url = base_url;
+        this._url = url;
     }
 
 
@@ -157,7 +172,7 @@ class BaseUrlAdapter extends BaseAdapter {
 
     _getURL(options) {
         // Many resources will modify the URL to add query or segment parameters
-        return this._base_url;
+        return this._url;
     }
 
     _performRequest(options) {
@@ -172,7 +187,11 @@ class BaseUrlAdapter extends BaseAdapter {
     }
 
     _normalizeResponse(response_text, options) {
-        return JSON.parse(response_text);
+        if (typeof response_text === 'string') {
+            return JSON.parse(response_text);
+        }
+        // Some custom usages will return an object directly; return that
+        return response_text;
     }
 }
 

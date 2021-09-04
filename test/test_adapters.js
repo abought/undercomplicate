@@ -28,6 +28,15 @@ class TestAdapter extends BaseAdapter {
         records.forEach((row) => row.c = true);
         return records;
     }
+
+    _postProcessResponse(records, options) {
+        return records.map((record) => {
+            return Object.keys(record).reduce((acc, akey) => {
+                acc[`prefix.${akey}`] = record[akey];
+                return acc;
+            }, {});
+        });
+    }
 }
 
 
@@ -37,8 +46,8 @@ describe('BaseAdapter', function () {
         return source.getData()
             .then((result) => {
                 assert.deepEqual(result, [
-                    {a: 'line1', b: 'col2', c: true},
-                    {a: 'line2', b:'col2', c: true},
+                    {'prefix.a': 'line1', 'prefix.b': 'col2', 'prefix.c': true},
+                    {'prefix.a': 'line2', 'prefix.b':'col2', 'prefix.c': true},
                 ]);
             });
     });

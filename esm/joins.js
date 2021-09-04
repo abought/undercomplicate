@@ -8,7 +8,11 @@ function groupBy(records, group_key) {
     const result = new Map();
     for (let item of records) {
         const item_group = item[group_key];
-        if (item_group === undefined || typeof item_group === 'object') {
+
+        if (typeof item_group === 'undefined') {
+            throw new Error(`All records must specify a value for the field "${group_key}"`);
+        }
+        if (typeof item_group === 'object') {
             // If we can't group this item, then don't (exclude object, array, map, null, etc from grouping keys)
             throw new Error('Attempted to group on a field with non-primitive values');
         }
@@ -74,4 +78,4 @@ function full_outer_match(left, right, left_key, right_key) {
     return _any_match('outer', ...arguments);
 }
 
-export {left_match, inner_match, full_outer_match};
+export {left_match, inner_match, full_outer_match, groupBy};
