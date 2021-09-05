@@ -144,7 +144,7 @@ class BaseAdapter {
                 if (this._validate_fields) {
                     this._validateResponseFields(records);
                 }
-                return this._postProcessResponse(records);
+                return this._postProcessResponse(records, options);
             });
     }
 }
