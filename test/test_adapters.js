@@ -1,6 +1,29 @@
 import {assert} from 'chai';
 
-import {BaseAdapter} from '../esm/adapter.js';
+import {BaseAdapter, BaseUrlAdapter} from '../esm/adapter.js';
+
+
+class TestCacheQuirks extends BaseAdapter {
+    _getCacheKey(options) {
+        return options.somevalue;
+    }
+
+    _performRequest(options) {
+        // Return an object (not a string!) so that cache returns something at risk of being mutated
+        return Promise.resolve([{ a: 1, b:2, c:3 }]);
+    }
+
+    _normalizeResponse(records, options) {
+        // No parsing required
+        return records;
+    }
+
+    _annotateRecords(records, options) {
+        // Mutate the returned object, to confirm it doesn't mutate the contents of cache by shared reference
+        records.forEach((row) => row.a += 1);
+        return records;
+    }
+}
 
 class TestAdapter extends BaseAdapter {
     _buildRequestOptions(options, dependent_data) {
@@ -76,6 +99,16 @@ describe('BaseAdapter', function () {
         });
     });
 
+    it('intelligently clones non-string cache entries', function () {
+        const source = new TestCacheQuirks();
+        return source.getData({ somevalue: 1 })
+            .then((result) => {
+                assert.deepEqual(result, [{ a: 2, b:2, c:3 }], 'First cache check returns correct result');
+                return source.getData({ somevalue: 1 });
+            })
+            .then((result) => assert.deepEqual(result, [{ a: 2, b:2, c:3 }], 'Second cache check returns correct result'));
+    });
+
     it('validates that a declared adapter will meet an external contract', function () {
         const source = new TestAdapter({validate_fields: true, fields: ['a', 'd']});
         return source.getData()
@@ -99,4 +132,12 @@ describe('BaseAdapter', function () {
         status = source.checkFieldsContract(['a', 'c']);
         assert.isOk(status, 'Requested contract matches expected contract');
     });
+});
+
+describe('BaseURLAdapter', function () {
+    const source = new BaseUrlAdapter({});
+    assert.throws(
+        () => source._getURL(),
+        /must specify a resource URL/,
+    );
 });

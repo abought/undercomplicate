@@ -1,3 +1,5 @@
+import clone from 'just-clone';
+
 import {LRUCache} from './lru_cache';
 
 
@@ -138,7 +140,14 @@ class BaseAdapter {
             this._cache.add(cache_key, result, options._cache_meta);
         }
 
-        return result.then((text) => this._normalizeResponse(text, options))
+        return result
+            .then((text) => {
+                if (typeof text === 'object') {
+                    // If the cached item isn't text, return a cloned copy so that annotations don't mutate cache
+                    text = clone(text);
+                }
+                return this._normalizeResponse(text, options);
+            })
             .then((records) => this._annotateRecords(records, options))
             .then((records) => {
                 if (this._validate_fields) {
@@ -156,12 +165,7 @@ class BaseAdapter {
 class BaseUrlAdapter extends BaseAdapter {
     constructor(config) {
         super(config);
-
-        const { url } = config;
-        if (!url) {
-            throw new Error('Web based resources must specify a resource URL as option "url"');
-        }
-        this._url = url;
+        this._url = config.url;
     }
 
 
@@ -171,7 +175,11 @@ class BaseUrlAdapter extends BaseAdapter {
     }
 
     _getURL(options) {
-        // Many resources will modify the URL to add query or segment parameters
+        // Many resources will modify the URL to add query or segment parameters. Base method provides option validation.
+        //  (not validating in constructor allows URL adapter to be used as more generic parent class)
+        if (!this._url) {
+            throw new Error('Web based resources must specify a resource URL as option "url"');
+        }
         return this._url;
     }
 
@@ -190,7 +198,7 @@ class BaseUrlAdapter extends BaseAdapter {
         if (typeof response_text === 'string') {
             return JSON.parse(response_text);
         }
-        // Some custom usages will return an object directly; return that
+        // Some custom usages will return an object directly; return a copy of the object
         return response_text;
     }
 }
