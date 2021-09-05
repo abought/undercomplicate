@@ -50,4 +50,20 @@ describe('LRC cache', function () {
 
         assert.deepEqual(cache._head.metadata, meta);
     });
+
+    it('can search for an item', function () {
+        const cache = new LRUCache(3);
+
+        cache.add('akey', 12, {chr: '2', start: 15, end: 30});
+        cache.add('bkey', 18, {chr: '1', start: 10, end: 20});
+
+        let found = cache.find((node) => node.value < 10);
+        assert.equal(found, null, 'Return null when no match found');
+
+        found = cache.find((node) => node.value > 10);
+        assert.equal(found.key, 'bkey', 'Return the first match (ordered by most newest cache entry)');
+
+        found = cache.find(({ metadata}) => metadata.chr === '2' && 16 >= metadata.start &&  18 <= metadata.end);
+        assert.deepEqual(found.key, 'akey', 'A more interesting example: region overlap tested via metadata');
+    });
 });

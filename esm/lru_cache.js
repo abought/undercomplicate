@@ -99,6 +99,24 @@ class LRUCache {
         this._store.delete(node.key);
         this._cur_size -= 1;
     }
+
+    /**
+     * Find a matching item in the cache, or return null. This is useful for "approximate match" semantics,
+     *  to check if something qualifies as a cache hit despite not having the exact same key.
+     *  (Example: zooming into a region, where the smaller region is a subset of something already cached)
+     * @param callback
+     * @returns {null|LLNode}
+     */
+    find(callback) {
+        let node = this._head;
+        while (node) {
+            const next = node.next;
+            if (callback(node)) {
+                return node;
+            }
+            node = next;
+        }
+    }
 }
 
 export { LRUCache };
