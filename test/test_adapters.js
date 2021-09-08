@@ -135,9 +135,11 @@ describe('BaseAdapter', function () {
 });
 
 describe('BaseURLAdapter', function () {
-    const source = new BaseUrlAdapter({});
-    assert.throws(
-        () => source._getURL(),
-        /must specify a resource URL/,
-    );
+    it('Requests throw an error when a URL is not provided', function () {
+        const source = new BaseUrlAdapter({});
+        assert.throws(
+            () => source._performRequest({}),
+            /must specify a resource URL/,
+        );
+    });
 });

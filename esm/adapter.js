@@ -132,22 +132,19 @@ class BaseAdapter {
         if (this._enable_cache && this._cache.has(cache_key)) {
             result = this._cache.get(cache_key);
         } else {
-            // Cache the promise (to avoid race conditions in conditional fetch). If the function `_getCacheKey`
-            //  sets a special option value called _cache_meta, this will be used to annotate the cache entry
+            // Cache the promise (to avoid race conditions in conditional fetch). If anything (like `_getCacheKey`)
+            //  sets a special option value called `_cache_meta`, this will be used to annotate the cache entry
             // For example, this can be used to decide whether zooming into a view could be satisfied by a cache entry,
             //  even if the actual cache key wasn't an exact match
-            result = this._performRequest(options);
+            result = Promise.resolve(this._performRequest(options))
+                // Note: we cache the normalized (parsed) response
+                .then((text) => this._normalizeResponse(text, options));
             this._cache.add(cache_key, result, options._cache_meta);
         }
 
         return result
-            .then((text) => {
-                if (typeof text === 'object') {
-                    // If the cached item isn't text, return a cloned copy so that annotations don't mutate cache
-                    text = clone(text);
-                }
-                return this._normalizeResponse(text, options);
-            })
+            // Return a deep clone of the data, so that there are no shared mutable references to a parsed object in cache
+            .then((data) => clone(data))
             .then((records) => this._annotateRecords(records, options))
             .then((records) => {
                 if (this._validate_fields) {
@@ -163,7 +160,7 @@ class BaseAdapter {
  * Fetch data over the web
  */
 class BaseUrlAdapter extends BaseAdapter {
-    constructor(config) {
+    constructor(config = {}) {
         super(config);
         this._url = config.url;
     }
@@ -175,16 +172,16 @@ class BaseUrlAdapter extends BaseAdapter {
     }
 
     _getURL(options) {
-        // Many resources will modify the URL to add query or segment parameters. Base method provides option validation.
-        //  (not validating in constructor allows URL adapter to be used as more generic parent class)
-        if (!this._url) {
-            throw new Error('Web based resources must specify a resource URL as option "url"');
-        }
         return this._url;
     }
 
     _performRequest(options) {
         const url = this._getURL(options);
+        // Many resources will modify the URL to add query or segment parameters. Base method provides option validation.
+        //  (not validating in constructor allows URL adapter to be used as more generic parent class)
+        if (!this._url) {
+            throw new Error('Web based resources must specify a resource URL as option "url"');
+        }
         return fetch(url).then((response) => {
             if (!response.ok) {
                 throw new Error(response.statusText);
