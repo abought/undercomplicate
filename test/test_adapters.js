@@ -108,30 +108,6 @@ describe('BaseAdapter', function () {
             })
             .then((result) => assert.deepEqual(result, [{ a: 2, b:2, c:3 }], 'Second cache check returns correct result'));
     });
-
-    it('validates that a declared adapter will meet an external contract', function () {
-        const source = new TestAdapter({validate_fields: true, fields: ['a', 'd']});
-        return source.getData()
-            .then(() => assert.ok(false, 'Contract validation should fail'))
-            .catch((e) => {
-                assert.match(e.message, /missing expected fields/);
-            });
-    });
-
-    it('allows adapter instances to declare additional fields of interest beyond the basic contract', function () {
-        const source = new TestAdapter({validate_fields: true, fields: ['a', 'b'], extra_fields: ['c']});
-        return source.getData().then((resp) => assert.ok('Schema validation passed'));
-    });
-
-    it('allows external providers to ask if adapter satisfies an expected contract', function () {
-        const source = new TestAdapter({validate_fields: true, fields: ['a', 'b'], extra_fields: ['c']});
-
-        let status = source.checkFieldsContract(['a', 'd'], false);
-        assert.isNotOk(status, 'Requested contract does not match expected contract');
-
-        status = source.checkFieldsContract(['a', 'c']);
-        assert.isOk(status, 'Requested contract matches expected contract');
-    });
 });
 
 describe('BaseURLAdapter', function () {
