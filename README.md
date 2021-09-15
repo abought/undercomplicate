@@ -9,7 +9,7 @@ When working with sensitive data from multiple sources, it is not always possibl
 
 _Undercomplicate_ is a data retrieval library that handles retrieving data from heterogenous sources. It manages dependencies so that requests are parallelized when possible, or performed sequentially if necessary. Each part of the request lifecycle can be customized to encourage code reuse, and various customizable cache behaviors are possible.
 
-The package has been written with research tools like LocusZoom.js in mind. Our goal is to provide a reusable way to request and use data, even though research groups do not always use the same nomenclature or storage / data / API response formats. If you are able to store your data in a well-defined relational schema, please do that! But if your storage is too big and decentralized for SQL, the dependency management and client-side join logic in this library may be of use.  
+The package has been written with research tools like [LocusZoom.js](https://github.com/statgen/locuszoom) in mind. Our goal is to provide a reusable way to request and use data, even though research groups do not always use the same nomenclature or storage / data / API response formats. If you are able to store your data in a well-defined relational schema, please do that! But if your storage is too big and decentralized for SQL, the dependency management and client-side join logic in this library may be of use.  
 
 **Key features:**
 
