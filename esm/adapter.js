@@ -1,7 +1,5 @@
-import clone from 'just-clone';
-
 import {LRUCache} from './lru_cache';
-
+import {clone} from './util';
 
 class BaseAdapter {
     constructor(config = {}) {

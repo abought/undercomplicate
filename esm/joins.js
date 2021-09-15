@@ -1,7 +1,7 @@
 /**
  * Very simple client-side data joins. Useful for aligning records from two datasets based on a common key.
  */
-import clone from 'just-clone';
+import { clone } from './util';
 
 
 function groupBy(records, group_key) {

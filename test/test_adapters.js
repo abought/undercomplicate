@@ -108,6 +108,28 @@ describe('BaseAdapter', function () {
             })
             .then((result) => assert.deepEqual(result, [{ a: 2, b:2, c:3 }], 'Second cache check returns correct result'));
     });
+
+    it('does not mangle string values in cache', function () {
+        const expected = 'Some string value';
+
+        class TestStringCache extends BaseAdapter {
+            _getCacheKey(options) {
+                return options.somevalue;
+            }
+
+            _performRequest(options) {
+                return Promise.resolve(expected);
+            }
+        }
+
+        const source = new TestStringCache();
+        return source.getData({ somevalue: 1 })
+            .then((result) => {
+                assert.deepEqual(result, expected, 'First value is returned and second cache');
+                return source.getData({ somevalue: 1 });
+            })
+            .then((result) => assert.deepEqual(result, expected, 'Second request returns cache hit, not mangled by cloning process'));
+    });
 });
 
 describe('BaseURLAdapter', function () {
