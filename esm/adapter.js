@@ -87,6 +87,9 @@ class BaseAdapter {
                 // Note: we cache the normalized (parsed) response
                 .then((text) => this._normalizeResponse(text, options));
             this._cache.add(cache_key, result, options._cache_meta);
+            // We are caching a promise, which means we want to *un*cache a promise that rejects, eg a failed or interrupted request
+            //  Otherwise, temporary failures couldn't be resolved by trying again in a moment
+            result.catch((e) => this._cache.remove(cache_key));
         }
 
         return result

@@ -2,7 +2,7 @@ import {assert} from 'chai';
 
 import {LRUCache} from '../esm/lru_cache';
 
-describe('LRC cache', function () {
+describe('LRU cache', function () {
     it('restricts max size by evicting old items', function () {
         const cache = new LRUCache(3);
         ['a', 'b', 'c', 'd', 'e'].forEach((item, index) => cache.add(item, index));
@@ -40,6 +40,20 @@ describe('LRC cache', function () {
 
         cache.get('nothing');
         assert.equal(cache._head.key, 'b', 'Uncached values will not affect the LRU order');
+    });
+
+    it('can remove an item by key name', function () {
+        const cache = new LRUCache(3);
+        cache.add('some_key', 12);
+
+        let result = cache.remove('some_key');
+        assert.ok(result, 'Removing a known item returns true');
+        assert.equal(cache._cur_size, 0, 'Item removed from cache');
+
+        result = cache.remove('never_there');
+        assert.notOk(result, 'Removing unknown item returns false');
+        assert.equal(cache._cur_size, 0, 'Cache still has zero items');
+
     });
 
     it('stores metadata along with cache entries', function () {

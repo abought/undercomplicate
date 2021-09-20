@@ -84,6 +84,17 @@ class LRUCache {
         this._store = new Map();
     }
 
+    // Public method, remove by key
+    remove(key) {
+        const cached = this._store.get(key);
+        if (!cached) {
+            return false;
+        }
+        this._remove(cached);
+        return true;
+    }
+
+    // Internal implementation, useful when working on list
     _remove(node) {
         if (node.prev !== null) {
             node.prev.next = node.next;
