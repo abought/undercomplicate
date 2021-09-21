@@ -130,6 +130,31 @@ describe('BaseAdapter', function () {
             })
             .then((result) => assert.deepEqual(result, expected, 'Second request returns cache hit, not mangled by cloning process'));
     });
+
+    it('unsets a cached promise if the promise rejects', function () {
+        let some_counter = 0;
+
+        class TestCacheRejection extends BaseAdapter {
+            _getCacheKey(options) {
+                return 'always_same_key';
+            }
+
+            _performRequest(options) {
+                // If we were feeding (failed) response from cache, then every new request would have the same counter value
+                some_counter += 1;
+                return Promise.reject(some_counter);
+            }
+        }
+
+        const source = new TestCacheRejection();
+        return source.getData({})
+            .catch((value_from_error) => {
+                assert.equal(value_from_error, 1, 'First request is counted as 1');
+                return source.getData({});
+            }).catch((value_from_error) => {
+                assert.equal(value_from_error, 2, 'Second request is counted as 2 because rejections are removed from cache');
+            });
+    });
 });
 
 describe('BaseURLAdapter', function () {

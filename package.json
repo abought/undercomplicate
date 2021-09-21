@@ -1,11 +1,11 @@
 {
   "name": "undercomplicate",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A simple library for retrieving heterogeneous and interdependent data",
   "main": "dist/index.js",
   "module": "esm/index.js",
   "scripts": {
-    "build": "rollup --config",
+    "build": "npm run test && rollup --config",
     "test": "eslint esm/ test/ && mocha --recursive test",
     "test:coverage": "nyc --reporter=text mocha --recursive test/**/*.js"
   },
