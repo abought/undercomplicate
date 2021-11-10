@@ -13,6 +13,13 @@ class BaseAdapter {
         this._cache = new LRUCache(cache_size);
     }
 
+    /**
+     * Build an object with options that control the request. This can take into account both explicit options, and prior data.
+     * @param {Object} options Any global options passed in via `getData`. Eg, in locuszoom, every request is passed a copy of `plot.state` as the options object, in which case every adapter would expect certain basic information like `chr, start, end` to be available.
+     * @param {Object[]} dependent_data If the source is called with dependencies, this function will receive one argument with the fully parsed response data from each other source it depends on. Eg, `ld(assoc)` means that the LD adapter would be called with the data from an association request as a function argument. Each dependency is its own argument: there can be 0, 1, 2, ...N arguments.
+     * @returns {*} An options object containing initial options, plus any calculated values relevant to the request.
+     * @public
+     */
     _buildRequestOptions(options, dependent_data) {
         // Perform any pre-processing required that may influence the request. Receives an array with the payloads
         //  for each request that preceded this one in the dependency chain
@@ -20,6 +27,16 @@ class BaseAdapter {
         return Object.assign({}, options);
     }
 
+    /**
+     * Determine how this request is uniquely identified in cache. Usually this is an exact match for the same key, but it doesn't have to be.
+     * The LRU cache implements a `find` method, which means that a cache item can optionally be identified by its node
+     * `metadata` (instead of exact key match).
+     *  This is useful for situations where the user zooms in to a smaller region and wants the original request to
+     *  count as a cache hit.
+     * @param options
+     * @returns {*} This is often a string concatenating unique values for a compound cache key, like `chr_start_end`
+     * @public
+     */
     _getCacheKey(options) {
         /* istanbul ignore next */
         if (this._enable_cache) {
@@ -32,25 +49,35 @@ class BaseAdapter {
      * Perform the act of data retrieval (eg from a URL, blob, or JSON entity)
      * @param options
      * @returns {Promise}
-     * @private
+     * @public
      */
     _performRequest(options) {
         /* istanbul ignore next */
         throw new Error('Not implemented');
     }
 
+    /**
+     * Convert the response format into a list of objects, one per datapoint. Eg split lines of a text file, or parse a blob of json.
+     * @param response_text The raw response from performRequest, be it text, binary, etc.
+     * @param {Object} options Request options. These are not typically used when normalizing a response, but the object is available.
+     * @returns {*} A list of objects, each object representing one row of data `{column_name: value_for_row}`
+     * @public
+     */
     _normalizeResponse(response_text, options) {
-        // Convert the response format into a list of objects, one per datapoint. Eg split lines of a text file, or parse a blob of json.
         return response_text;
     }
 
     /**
      * Perform custom client-side operations on the retrieved data. For example, add calculated fields or
-     *  perform rapid client-side filtering on cached data
+     *  perform rapid client-side filtering on cached data. Annotations are applied after cache, which means
+     *  that the same network request can be dynamically annotated/filtered in different ways in response to user interactions.
+     *
+     * This result is currently not cached, but it may become so in the future as responsibility for dynamic UI
+     *   behavior moves to other layers of the application.
      * @param records
      * @param {Object} options
      * @returns {*}
-     * @private
+     * @public
      */
     _annotateRecords(records, options) {
         return records;
@@ -58,16 +85,23 @@ class BaseAdapter {
 
     /**
      * A hook to transform the response after all operations are done. For example, this can be used to prefix fields
-     *  with a namespace unique to the request, like assoc.log_pvalue. (that way, annotations and validation can happen
+     *  with a namespace unique to the request, like assoc:log_pvalue. (that way, annotations and validation can happen
      *  on the actual API payload, without having to guess what the fields were renamed to).
      * @param records
      * @param options
-     * @private
+     * @public
      */
     _postProcessResponse(records, options) {
         return records;
     }
 
+    /**
+     * All adapters must implement this method to asynchronously return data. All other methods are simply internal hooks to customize the actual request for data.
+     * @param options Shared options for this request. In LocusZoom, this is typically a copy of `plot.state`.
+     * @param dependent_data One or more recordsets corresponding to each individual adapter that this one depends on.
+     *  Can be used to build a request that takes into account prior data.
+     * @returns {Promise<*>}
+     */
     getData(options = {}, ...dependent_data) {
         // Public facing method to define, perform, and process the request
         options = this._buildRequestOptions(options, ...dependent_data);
@@ -89,6 +123,8 @@ class BaseAdapter {
             this._cache.add(cache_key, result, options._cache_meta);
             // We are caching a promise, which means we want to *un*cache a promise that rejects, eg a failed or interrupted request
             //  Otherwise, temporary failures couldn't be resolved by trying again in a moment
+            // TODO: In the future, consider providing a way to skip requests (eg, a sentinel value to flag something
+            //  as not cacheable, like "no dependent data means no request... but maybe in another place this is used, there will be")
             result.catch((e) => this._cache.remove(cache_key));
         }
 
@@ -116,6 +152,12 @@ class BaseUrlAdapter extends BaseAdapter {
         return this._getURL(options);
     }
 
+    /**
+     * In many cases, the base url should be modified with query parameters based on request options.
+     * @param options
+     * @returns {*}
+     * @private
+     */
     _getURL(options) {
         return this._url;
     }
@@ -131,7 +173,6 @@ class BaseUrlAdapter extends BaseAdapter {
             if (!response.ok) {
                 throw new Error(response.statusText);
             }
-            // In most cases, we store the response as text so that the copy in cache is clean (no mutable references)
             return response.text();
         });
     }
